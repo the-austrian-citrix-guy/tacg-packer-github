@@ -9,8 +9,6 @@ jobs:
   packer-build:
     runs-on: ubuntu-latest
     env:
-      AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
-      # Optional: enable Packer logging
       PACKER_LOG: "1"
       PACKER_LOG_PATH: "packer.log"
 
@@ -18,21 +16,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Packer
-        uses: hashicorp/setup-packer@v1
-
       - name: Packer init
         run: packer init ./packer
 
       - name: Packer validate
-        run: packer validate ./packer
+        run: packer validate -var-file "./packer/win11-azure.auto.pkrvars.hcl" ./packer/win11-azure.pkr.hcl
 
       - name: Packer build
-        run: packer build -on-error=ask ./packer/ami.pkr.hcl
+        run: packer build -on-error=abort -force -var-file="./packer/win11-azure.auto.pkrvars.hcl" ./packer/win11-azure.pkr.hcl
