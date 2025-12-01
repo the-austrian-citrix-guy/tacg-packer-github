@@ -9,6 +9,13 @@ jobs:
   packer-build:
     runs-on: ubuntu-latest
     env:
+      PKR_VAR_Azure_ClientID: ${{ secrets.AZURE_CLIENTID }}
+      PKR_VAR_Azure_ClientSecret: ${{ secrets.AZURE_CLIENTSECRET }}
+      PKR_VAR_Azure_SubscriptionID: ${{ secrets.AZURE_SUBSCRIPTIONID }}
+      PKR_VAR_Azure_TenantID: ${{ secrets.AZURE_TENANTID }}
+      PKR_VAR_Azure_RG: ${{ secrets.AZURE_RG }}
+      PKR_VAR_Azure_TempRG: ${{ secrets.AZURE_TempRG }}
+
       PACKER_LOG: "1"
       PACKER_LOG_PATH: "packer.log"
 
