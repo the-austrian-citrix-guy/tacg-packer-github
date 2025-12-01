@@ -135,7 +135,7 @@ build {
 
   # Install Chocolatey packages
   provisioner "file" {
-    source      = "SWPackagesToInstall.config"
+    source      = "./packer/SWPackagesToInstall.config"
     destination = "D:/SWPackagesToInstall.config"
   }
 
