@@ -1,0 +1,33 @@
+
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Choose environment"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      action:
+        description: "Terraform action"
+        required: true
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+jobs:
+  call-terraform:
+    uses: your-org/infra-workflows/.github/workflows/terraform.yml@main
+    with:
+      environment: ${{ github.event.inputs.environment }}
+      terraform_action: ${{ github.event.inputs.action }}
+    secrets:
+      TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}

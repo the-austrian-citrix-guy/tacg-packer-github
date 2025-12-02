@@ -1,0 +1,39 @@
+name: Run Terraform snippet to install SW using Ansible and Chocolatey
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment (dev/staging/prod)"
+        required: true
+        type: string
+      terraform_action:
+        description: "Terraform action (plan/apply/destroy)"
+        required: true
+        type: string
+    secrets:
+      TF_API_TOKEN:
+        required: true
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      WORKING_DIR: ./infra/${{ inputs.environment }}  # Dynamic directory based on environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Initialize Terraform
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform init
+
+      - name: Run Terraform Command
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform ${{ inputs.terraform_action }}
+
