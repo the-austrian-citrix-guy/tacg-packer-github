@@ -1,0 +1,59 @@
+# Terraform Deployment to install Software Packages on Target machines using Ansible and Chocolatey
+## Reference https://docs.ansible.com/projects/ansible/latest/collections/chocolatey/chocolatey/win_chocolatey_module.html
+### Reference https://community.chocolatey.org/packages
+#### Ansible-related Variables
+###### ***** IMPORTANT: You must set the permissions to the destination directory accordingly (sudo) chmod 777 otherwise the provisioning will fail *****
+
+#### Use Ansible to remove Software Packages using Chocolatey on Target Machine 
+resource "null_resource" "RemoveSW" {
+  provisioner "local-exec" {
+    working_dir = "/etc/ansible"
+    command     = var.TACG-TMM-Ansible-RemoveSWPackagesUsingChocolatey-CMD
+  }
+}
+
+##### Check Ansible Return Code
+data "external" "CheckAnsibleReturnCodeRemove" {
+  depends_on = [null_resource.RemoveSW]
+  program    = ["bash", "/etc/ansible/packer/assets/CheckAnsibleReturnCode.sh", "/etc/ansible/packer/assets/ansible_exit_code.txt", "0|3010"]
+}
+
+##### Terminate if Return Code is not 0
+resource "null_resource" "IfExitCodeIsNotZeroThenHaltRemove" {
+  depends_on = [data.external.CheckAnsibleReturnCodeRemove]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = "[ \"${data.external.CheckAnsibleReturnCodeRemove.result.found}\" = \"1\" ] && echo \"Software Packages were successfully removed - Everything OK\" || { echo \"Removing Software Packages failed. Please review the settings. Halting Terraform.\"; exit 1; }"
+  }
+}
+
+resource "time_sleep" "wait_10_seconds_remove_1" {
+  depends_on      = [null_resource.IfExitCodeIsNotZeroThenHaltRemove]
+  create_duration = "10s"
+}
+
+#### Use Ansible to list all Software Packages using Chocolatey on Target Machine 
+resource "null_resource" "GetSWPackagesRemove" {
+  depends_on = [time_sleep.wait_10_seconds_remove_1]
+  provisioner "local-exec" {
+    working_dir = "/etc/ansible"
+    command     = var.TACG-TMM-Ansible-GetSWPackagesInstalledByChocolate-CMD
+  }
+}
+
+##### Check Ansible Return Code
+data "external" "CheckAnsibleReturnCodeRemove_1" {
+  depends_on = [null_resource.GetSWPackagesRemove]
+  program    = ["bash", "/etc/ansible/packer/assets/CheckAnsibleReturnCode.sh", "/etc/ansible/packer/assets/ansible_exit_code.txt", "0"]
+}
+
+##### Terminate if Return Code is not 0
+resource "null_resource" "IfExitCodeIsNotZeroThenHaltRemove_1" {
+  depends_on = [data.external.CheckAnsibleReturnCodeRemove_1]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = "[ \"${data.external.CheckAnsibleReturnCodeRemove_1.result.found}\" = \"1\" ] && echo \"Software Packages were successfully listed - Everything OK\" || { echo \"Listing Software Packages failed. Please review the settings. Halting Terraform.\"; exit 1; }"
+  }
+}
+
+##### All necessary playbooks on the VMs are complete

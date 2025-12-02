@@ -1,0 +1,11 @@
+---
+- name: Print out all software packages installed by Chocolatey
+  hosts: packer_masterimages_w11
+  tasks:
+    - name: Get all by Chocolatey installed packages
+      win_chocolatey_facts:
+      register: list_choco_packages
+      
+    - name: Print out facts
+      debug:
+        var: list_choco_packages.ansible_facts.ansible_chocolatey.packages

@@ -1,0 +1,49 @@
+---
+- name: Remove SW Packages using Chocolatey
+  hosts: packer_masterimages_w11
+
+  vars:
+    # Add all packages which should be removed by Chocolatey
+    choco_packages:
+      - notepadplusplus
+
+  tasks:
+  - name: Remove packages
+    win_chocolatey:
+      name: "{{ item }}"
+      remove_dependencies: true
+      state: absent
+    loop: "{{ choco_packages }}"
+    register: get_choco_installation_results
+    failed_when: false
+
+  - name: Determine if any choco install returned reboot-required (3010)
+    set_fact:
+      reboot_required: >-
+        {{
+          (
+            get_choco_installation_results.results
+            | selectattr('rc','defined') | selectattr('rc','equalto',3010) | list | length > 0
+          )
+          or
+          (
+            get_choco_installation_results.results
+            | selectattr('return_code','defined') | selectattr('return_code','equalto',3010) | list | length > 0
+          )
+          or
+          (
+            get_choco_installation_results.results
+            | selectattr('chocolatey_exit_code','defined') | selectattr('chocolatey_exit_code','equalto',3010) | list | length > 0
+          )
+        }}
+
+  - name: Show whether a host reboot is required
+    debug:
+      msg: "Chocolatey requests a host reboot: {{ reboot_required }}"
+
+  - name: Reboot the host if Chocolatey signaled that a host reboot is required
+    ansible.windows.win_reboot:
+      reboot_timeout: 600
+      pre_reboot_delay: 5
+      post_reboot_delay: 30
+    when: reboot_required | bool
