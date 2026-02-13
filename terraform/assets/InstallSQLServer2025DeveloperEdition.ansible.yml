@@ -216,6 +216,7 @@
     register: sql_version
     failed_when: false
     changed_when: false
+    no_log: true
 
   - name: Display SQL Server version
     ansible.builtin.debug:
@@ -227,8 +228,7 @@
       msg: |
         SQL Server 2025 Developer Edition installation completed successfully!
         Instance Name: {{ sql_instance_name }}
-        SA Password: {{ sql_sa_password }}
         TCP Port: 1433
         Services: SQL Server and SQL Server Agent are running
-        Please remember to change the SA password after installation!
+        IMPORTANT: Change the SA password immediately after installation!
     when: not sql_service_check.exists

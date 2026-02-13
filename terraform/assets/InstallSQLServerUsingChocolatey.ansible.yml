@@ -13,6 +13,12 @@
     # Common options: sql-server-2022, sql-server-2019, sql-server-express
     sql_server_package: "sql-server-2022"  # Adjust to sql-server-2025 when available
     
+    # SQL Server SA Password - CHANGE THIS!
+    # For better security, use --extra-vars to pass this at runtime:
+    # ansible-playbook playbook.yml --extra-vars "sql_sa_password=YourPassword"
+    # Or use Ansible Vault to encrypt this variable
+    sql_sa_password: "YourStrongPassword123!"
+    
     # SQL Server Express is also available if preferred
     # sql_server_package: "sql-server-express"
     
@@ -21,7 +27,7 @@
       - "/FEATURES=SQLENGINE,REPLICATION,FULLTEXT,IS,CONN,BC,SDK"
       - "/INSTANCENAME=MSSQLSERVER"
       - "/SECURITYMODE=SQL"
-      - "/SAPWD=YourStrongPassword123!"
+      - "/SAPWD={{ sql_sa_password }}"
       - "/TCPENABLED=1"
       - "/IACCEPTSQLSERVERLICENSETERMS"
       - "/SQLSVCACCOUNT='NT AUTHORITY\\SYSTEM'"
