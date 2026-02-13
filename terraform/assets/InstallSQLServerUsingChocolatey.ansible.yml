@@ -1,7 +1,7 @@
 ---
 # Simplified SQL Server 2025 Installation using Chocolatey
 # This is an alternative approach using Chocolatey package manager
-# Note: As of the creation date, SQL Server 2025 may not be available in Chocolatey yet
+# Note: As of this writing, SQL Server 2025 may not be available in Chocolatey yet
 # You may need to use sql-server-2022 or sql-server-2019 from Chocolatey instead
 
 - name: Install SQL Server using Chocolatey (Simplified)
