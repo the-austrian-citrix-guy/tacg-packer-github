@@ -1,0 +1,113 @@
+---
+# Simplified SQL Server 2025 Installation using Chocolatey
+# This is an alternative approach using Chocolatey package manager
+# Note: As of the creation date, SQL Server 2025 may not be available in Chocolatey yet
+# You may need to use sql-server-2022 or sql-server-2019 from Chocolatey instead
+
+- name: Install SQL Server using Chocolatey (Simplified)
+  hosts: all
+  gather_facts: yes
+
+  vars:
+    # Note: Adjust package name based on availability in Chocolatey
+    # Common options: sql-server-2022, sql-server-2019, sql-server-express
+    sql_server_package: "sql-server-2022"  # Adjust to sql-server-2025 when available
+    
+    # SQL Server Express is also available if preferred
+    # sql_server_package: "sql-server-express"
+    
+    # Installation parameters for Chocolatey
+    choco_install_params:
+      - "/FEATURES=SQLENGINE,REPLICATION,FULLTEXT,IS,CONN,BC,SDK"
+      - "/INSTANCENAME=MSSQLSERVER"
+      - "/SECURITYMODE=SQL"
+      - "/SAPWD=YourStrongPassword123!"
+      - "/TCPENABLED=1"
+      - "/IACCEPTSQLSERVERLICENSETERMS"
+      - "/SQLSVCACCOUNT='NT AUTHORITY\\SYSTEM'"
+      - "/AGTSVCACCOUNT='NT AUTHORITY\\SYSTEM'"
+      - "/SQLSVCSTARTUPTYPE=Automatic"
+      - "/AGTSVCSTARTUPTYPE=Automatic"
+
+  tasks:
+  - name: Check if SQL Server is already installed
+    ansible.windows.win_service:
+      name: "MSSQLSERVER"
+    register: sql_service_check
+    failed_when: false
+
+  - name: Display SQL Server installation status
+    ansible.builtin.debug:
+      msg: "SQL Server is {{ 'already installed' if sql_service_check.exists else 'not installed' }}"
+
+  - name: Install SQL Server using Chocolatey
+    win_chocolatey:
+      name: "{{ sql_server_package }}"
+      state: present
+      install_args: "{{ choco_install_params | join(' ') }}"
+    register: sql_choco_install
+    when: not sql_service_check.exists
+    failed_when: false
+
+  - name: Check installation result
+    ansible.builtin.debug:
+      msg: "SQL Server installation {{ 'completed' if sql_choco_install.rc == 0 else 'may require attention' }}"
+    when: not sql_service_check.exists
+
+  - name: Configure Windows Firewall for SQL Server (TCP 1433)
+    community.windows.win_firewall_rule:
+      name: "SQL Server Database Engine"
+      localport: 1433
+      action: allow
+      direction: in
+      protocol: tcp
+      state: present
+      enabled: yes
+
+  - name: Configure Windows Firewall for SQL Server Browser (UDP 1434)
+    community.windows.win_firewall_rule:
+      name: "SQL Server Browser"
+      localport: 1434
+      action: allow
+      direction: in
+      protocol: udp
+      state: present
+      enabled: yes
+
+  - name: Determine if reboot is required
+    ansible.builtin.set_fact:
+      reboot_required: "{{ sql_choco_install.rc == 3010 if sql_choco_install.rc is defined else false }}"
+    when: not sql_service_check.exists
+
+  - name: Show whether a host reboot is required
+    ansible.builtin.debug:
+      msg: "SQL Server installation requests a host reboot: {{ reboot_required }}"
+    when: not sql_service_check.exists
+
+  - name: Reboot the host if SQL Server installation requires it
+    ansible.windows.win_reboot:
+      reboot_timeout: 600
+      pre_reboot_delay: 5
+      post_reboot_delay: 60
+    when: 
+      - not sql_service_check.exists
+      - reboot_required | default(false) | bool
+
+  - name: Wait for SQL Server service to be available
+    ansible.windows.win_service:
+      name: "MSSQLSERVER"
+      state: started
+    register: sql_service_status
+    until: sql_service_status.state == 'running'
+    retries: 10
+    delay: 10
+    when: not sql_service_check.exists
+
+  - name: Installation summary
+    ansible.builtin.debug:
+      msg: |
+        SQL Server installation process completed!
+        Package: {{ sql_server_package }}
+        Instance Name: MSSQLSERVER
+        TCP Port: 1433
+        Note: Please verify the installation and change the SA password!
